@@ -1,0 +1,6 @@
+This directory contains code for 
+- walking the directory tree of the local grid copy and extracting E vs. cosTheta histograms from the charged MCParticles: getE_vs_cosTheta.jl
+- running that same code on just a single file: getE_vs_cosTheta_local.jl
+- extracting the production id from a list of files and reading the cross sections for that production from the DFC: getCrossSections.jl
+- combining the histograms from the first step weighted by the cross sections: combineHistograms_weighted.jl
+
