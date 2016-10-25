@@ -13,6 +13,15 @@ for line in readlines(open("xs500GeV"))
     crossSections[parse(Int64, fields[1])] = parse(Float64, fields[2])
 end
 
+nEvents = Dict{String, Int64}()
+for line in readlines(open("nEvents"))
+    if length(line) < 2
+        continue
+    end
+    fields = split(line)
+    nEvents[basename(fields[1])] = parse(Int64, fields[2])
+end
+
 # this function groups the different processes and scales according to a given polarization
 # what we need is a dictionary for each process that contains the four possible polarization states
 function polarizationCombinations()
@@ -68,7 +77,7 @@ for (root, dirs, files) in walkdir("ECosTheta_Tracks")
                 if contains(pol, "eL") polFactor *= 0.9 end
                 if contains(pol, "pR") polFactor *= 0.65 end
                 if contains(pol, "pL") polFactor *= 0.35 end
-                h.weights *= (polFactor * crossSections[id] / sum(h.entries))
+                h.weights *= (polFactor * crossSections[id] / nEvents[histo])
                 sumHist.weights += h.weights
                 sumHist.entries += h.entries
             end
