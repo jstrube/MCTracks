@@ -60,15 +60,15 @@ for (root, dirs, files) in walkdir("ECosTheta_Tracks")
             for histo in names(histofile)
                 h = read(histofile, histo)
                 id = parse(Int64, match(r"\.I(\d+)\.", histo)[1])
-                process = match(r"\.P([A-Za-z0-9_-]+)\.", line)[1]
-                pol = match(r"\.(e.\.p.)", line)[1]
+                process = match(r"\.P([A-Za-z0-9_-]+)\.", histo)[1]
+                pol = match(r"\.(e.\.p.)", histo)[1]
                 # polarization-weighted cross section
                 polFactor = 1.
                 if contains(pol, "eR") polFactor *= 0.1 end
                 if contains(pol, "eL") polFactor *= 0.9 end
                 if contains(pol, "pR") polFactor *= 0.65 end
                 if contains(pol, "pL") polFactor *= 0.35 end
-                h.weights *= (polfactor * crossSections[id])
+                h.weights *= (polFactor * crossSections[id] / sum(h.entries))
                 sumHist.weights += h.weights
                 sumHist.entries += h.entries
             end
