@@ -2,18 +2,18 @@ using LCIO
 using Histograms
 using JLD, HDF5
 
-function eCosTheta(mcp)
-    energy = getEnergy(mcp)
+function ptCosTheta(mcp)
     p = getMomentum(mcp)
     cosTheta = p[3] / sqrt(p[1]^2 + p[2]^2 + p[3]^2)
-    (energy, cosTheta)
+    pt = sqrt(p[1]^2 + p[2]^2)
+    (pt, cosTheta)
 end
 
 function plotDirectory(dir, files)
-    if !isdir("ECosTheta_Tracks/" * basename(dir))
-	mkdir("ECosTheta_Tracks/" * basename(dir))
+    if !isdir("PtCosTheta_Tracks/" * basename(dir))
+	mkdir("PtCosTheta_Tracks/" * basename(dir))
     end
-    outname = "ECosTheta_Tracks/" * basename(dir) * "/" * replace(dir, "/", "_") * ".jld"
+    outname = "PtCosTheta_Tracks/" * basename(dir) * "/" * replace(dir, "/", "_") * ".jld"
     if isfile(outname)
         println("The file $(outname) already exists. THat's bad. Aborting")
     	return
@@ -36,7 +36,7 @@ function plotDirectory(dir, files)
 			    if getCharge(mcp) == 0
 				continue
 			    end
-			    x, y = eCosTheta(mcp)
+			    x, y = ptCosTheta(mcp)
 			    hfill!(h2, x, y)
 			end
 		    end
