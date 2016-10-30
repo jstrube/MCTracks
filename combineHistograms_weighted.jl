@@ -60,9 +60,16 @@ end
 # thisXS += σ["eB.pB"] + σ["eW.pB"] + σ["eB.pW"] + σ["eW.pW"]
 
 # start with an empty histogram
-sumHist = H2D(1000, 0, 100, 100, -1, 1)
+sumHist = Dict{Int64, Histograms.Histogram2D}()
+# to keep track of the different process weights
+weightList = Dict{Int64, Any}()
+# to keep track of the different polarization states for a given process
+processList = Dict{String, Set{Int64}}()
+# to keep track of the different cross sections and polarizations
+polarizationList = Dict{Int64, Float64}()
+
 # now read the histograms
-for (root, dirs, files) in walkdir("ECosTheta_Tracks")
+for (root, dirs, files) in walkdir("PtCosTheta_Tracks")
     for f in files
         thisfile = joinpath(root, f)
         jldopen(thisfile, "r") do histofile
@@ -71,19 +78,70 @@ for (root, dirs, files) in walkdir("ECosTheta_Tracks")
                 id = parse(Int64, match(r"\.I(\d+)\.", histo)[1])
                 process = match(r"\.P([A-Za-z0-9_-]+)\.", histo)[1]
                 pol = match(r"\.(e.\.p.)", histo)[1]
+                # skip the aaddhad process. The weight is just too high
+                if process == "aaddhad"
+                    continue
+                end
                 # polarization-weighted cross section
                 polFactor = 1.
-                if contains(pol, "eR") polFactor *= 0.1 end
-                if contains(pol, "eL") polFactor *= 0.9 end
-                if contains(pol, "pR") polFactor *= 0.65 end
-                if contains(pol, "pL") polFactor *= 0.35 end
-                h.weights *= (polFactor * crossSections[id] / nEvents[histo])
-                sumHist.weights += h.weights
-                sumHist.entries += h.entries
+                if contains(pol, "eR")
+                    polFactor *= 0.1
+                elseif contains(pol, "eL")
+                    polFactor *= 0.9
+                end
+                if contains(pol, "pR")
+                    polFactor *= 0.65
+                elseif contains(pol, "pL")
+                    polFactor *= 0.35
+                end
+                if ! haskey(sumHist, id)
+                    sumHist[id] = H2D(1000, 0, 100, 100, -1, 1)
+                end
+                add!(sumHist[id], h)
+                if ! haskey(weightList, id)
+                    weightList[id] = (0, 0, 0)
+                end
+                v = weightList[id]
+                weightList[id] = (v[1]+nEvents[histo], v[2]+sum(h.entries), v[3]+sum(h.entries[21:end, 17:end-16])) # 2+ GeV, |cosTheta| < 0.7
+                if ! haskey(processList, process)
+                    processList[process] = Set{Int64}(id)
+                else
+                    push!(processList[process], id)
+                end
+                if ! haskey(polarizationList, id)
+                    polarizationList[id] = polFactor*crossSections[id]
+                end
             end
         end
     end
 end
-jldopen("sumHist.jld", "w") do file
-    write(file, "500GeV_sum", sumHist)  # alternatively, say "@write file A"
+@printf("%-16s %16s %16s %16s %16s %16s\n", "Process", "#events", "pol × XS", "weight/event", "#tracks/event", "2 GeV, central")
+using DataStructures
+for (k,val) in SortedDict(processList)
+    pol = sum(polarizationList[id] for id in processList[k])
+    v = [0, 0, 0]
+    for id in processList[k]
+        w = weightList[id]
+        v[1] += w[1]
+        v[2] += w[2]
+        v[3] += w[3]
+    end
+    @printf("%-16s %16d %16.3e %16.3f %16.3f %16.3f\n", k, v[1], pol, pol/v[1], v[2]/v[1], v[3]/v[1])
+end
+
+totalSum = H2D(1000, 0, 100, 100, -1, 1)
+for (k, v) in sumHist
+    v.weights *= polarizationList[k]
+    v.weights /= weightList[k][1]
+    add!(totalSum, v)
+end
+nEventsTotal = sum(value[1] for (process, value) in weightList)
+println("In total, we processed ", nEventsTotal, " events")
+totalXS = sum(v for (k, v) in polarizationList)
+println("The total cross section processed is ", totalXS, " fb")
+totalTracks = sum(totalSum.weights)
+println("This results in ", totalTracks, " tracks")
+
+jldopen("sumHist_pt.jld", "w") do file
+    write(file, "500GeV_sum", totalSum)  # alternatively, say "@write file A"
 end
