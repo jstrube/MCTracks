@@ -51,10 +51,6 @@ function plotDirectory(dir, files)
     return
 end
 
-dir = "/pic/projects/grid/ilc/prod/ilc/mc-dbd/generated/"
-if length(ARGS) > 0
-    dir = ARGS[1]
-end
-for (root, dirs, files) in walkdir(dir)
+for (root, dirs, files) in walkdir(ARGS[1])
     plotDirectory(root, files)
 end
