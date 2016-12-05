@@ -36,7 +36,8 @@ function plotDirectory(dir, files)
                             if getGeneratorStatus(mcp) != 1
                                 continue
                             end
-                            if abs(getPDG(mcp)) in [12, 14, 16, 22, 111, 130, 310, 311]
+                            # if abs(getPDG(mcp)) in [12, 14, 16, 22, 111, 130, 310, 311]
+                            if getCharge(mcp) == 0
                                 continue
                             end
                             x, y = ptCosTheta(mcp)

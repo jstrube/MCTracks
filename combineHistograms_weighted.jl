@@ -1,5 +1,6 @@
 using Histograms
 using JLD
+
 crossSections = Dict{Int64, Float64}()
 # read existing cross sections
 for line in readlines(open("xs500GeV"))
@@ -102,7 +103,7 @@ for (root, dirs, files) in walkdir("PtCosTheta_Tracks")
                     weightList[id] = (0, 0, 0)
                 end
                 v = weightList[id]
-                weightList[id] = (v[1]+nEvents[histo], v[2]+sum(h.entries), v[3]+sum(h.entries[21:end, 17:end-16])) # 2+ GeV, |cosTheta| < 0.7
+                weightList[id] = (v[1]+nEvents[histo], v[2]+sum(h.entries), v[3]+sum(h.entries[22:end, 17:end-16])) # 2+ GeV, |cosTheta| < 0.7
                 if ! haskey(processList, process)
                     processList[process] = Set{Int64}(id)
                 else
@@ -115,18 +116,19 @@ for (root, dirs, files) in walkdir("PtCosTheta_Tracks")
         end
     end
 end
-@printf("%-16s %16s %16s %16s %16s %16s\n", "Process", "#events", "pol × XS", "weight/event", "#tracks/event", "2 GeV, central")
+@printf("%-16s & %16s & %16s & %25s & %25s \\\\ \n", "Process", "#events", "pol × XS", "#tracks: 2 GeV, " * "|cos(θ)| < 0.7", "#tracks, XS - weighted")
 using DataStructures
 for (k,val) in SortedDict(processList)
     pol = sum(polarizationList[id] for id in processList[k])
-    v = [0, 0, 0]
+    v = [0.0, 0.0, 0.0]
     for id in processList[k]
+        p = polarizationList[id]
         w = weightList[id]
-        v[1] += w[1]
-        v[2] += w[2]
-        v[3] += w[3]
+        v[1] += p*w[1]
+        v[2] += p*w[2]
+        v[3] += p*w[3]
     end
-    @printf("%-16s %16d %16.3e %16.3f %16.3f %16.3f\n", k, v[1], pol, pol/v[1], v[2]/v[1], v[3]/v[1])
+    @printf("%-16s & %16d & %16.3e & %25.3f & %25.3e \\\\ \n", replace(k, "_", "\\_"), v[1], pol, v[3]/v[1], v[3]/v[1]*pol)
 end
 
 totalSum = H2D(1000, 0, 100, 100, -1, 1)
